@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   push:
     paths: ['android/**', 'player.html', 'config.js', 'logo.png', '.github/workflows/apk.yml']
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,7 +21,10 @@ jobs:
       - name: Compilar
         working-directory: android
         run: gradle assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
-        with:
-          name: tvindoor-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publicar o APK em Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk tvindoor.apk
+          gh release delete apk-latest --cleanup-tag -y || true
+          gh release create apk-latest tvindoor.apk --title "TV Indoor - APK mais recente" --notes "APK gerado automaticamente."
