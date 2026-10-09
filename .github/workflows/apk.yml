@@ -13,7 +13,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.7' }
       - name: Copiar o player para dentro do app
-        run: cp player.html config.js logo.png android/app/src/main/assets/
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp player.html config.js logo.png android/app/src/main/assets/
       - name: Compilar
         working-directory: android
         run: gradle assembleDebug --no-daemon
