@@ -1,0 +1,94 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>TV Indoor</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none;font-family:system-ui,sans-serif}
+#s{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#s{overflow:hidden}#s img,#s video{position:relative;z-index:1;width:100%;height:100%;object-fit:contain}#s canvas{position:absolute;inset:0;width:100%;height:100%;filter:blur(6px) brightness(.35) saturate(.8);transform:scale(1.15)}#s .f{box-shadow:0 0 4vw rgba(0,0,0,.85);outline:.2vw solid rgba(255,255,255,.55)}
+#i{color:#999;font-size:3vw;text-align:center;padding:0 5vw}#u{position:fixed;right:1vw;bottom:.6vw;color:#888;font-size:1.1vw}#s .pg{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;background:#fffdf7;color:#1c2b22;font-family:system-ui,sans-serif}
+.pg h1{margin:0;padding:3vh 4vw;background:#0b4f3a;color:#fff;font:700 6vw Georgia,serif}.pg.of h1{background:#c4301c}
+.pg ul{list-style:none;margin:0;padding:0;flex:1;display:grid;grid-template-rows:repeat(9,1fr)}
+.pg li{display:flex;align-items:center;justify-content:space-between;gap:2vw;padding:0 4vw;border-bottom:.2vw solid #e4dfd0;font-size:4.4vw}
+.pg i{font-size:2.8vw;color:#6b756f;font-style:normal}.pg s{font-size:3vw;color:#888;font-weight:400}
+.pg .p{font-weight:700;font-size:5.4vw;white-space:nowrap}.pg .hot{background:#fff0bf}.pg .hot .p{color:#c4301c}
+.pg.of ul{grid-template-rows:repeat(4,1fr)}.pg.of li{flex-direction:column;align-items:flex-start;justify-content:center;gap:.4vh}
+.pg .d{font-weight:600}.pg.of .d{font-size:5.4vw}.pg .old{font-size:3.2vw;color:#777;text-decoration:line-through}
+.pg .new{font-size:12vw;font-weight:800;color:#c4301c;line-height:1}.pg .new small{font-size:3.5vw;font-weight:600}.pg .until{font-size:3vw;color:#6b756f}
+.pg.lp h1{background:#fff;color:#111;font:900 9vw system-ui,sans-serif;padding:3vh 4vw 1vh;letter-spacing:-.2vw}
+.lp .hd{display:flex;justify-content:space-between;padding:1.2vh 4vw;font-weight:800;font-size:3vw;border-bottom:.35vw solid #111}
+.pg.lp ul{grid-template-rows:repeat(10,1fr)}.pg.lp li{border:0;font-size:3.6vw;text-transform:uppercase;font-weight:500}
+.lp li:nth-child(odd){background:#e6e9f0}.lp .p{font-size:4.8vw;font-weight:900}.lp .ft{padding:.8vh 4vw;font-size:2.2vw;color:#777}
+.pg h1{display:flex;align-items:center;justify-content:space-between;text-transform:uppercase}.pg h1 img{height:10vh;width:auto}
+.pg.of h1{background:#F58634;color:#fff;font:900 5vw system-ui,sans-serif}.pg .new{color:#F58634}
+.pg.lp h1{color:#007549}.lp .hd{border-bottom:.7vw solid #FEC32B;color:#007549}.lp li:nth-child(odd){background:#e6f3ea}.lp .p{color:#007549}
+.pg .hot{background:#fff3cf}.pg .hot .p{color:#d9650f}
+</style></head>
+<body><div id="s"></div><div id="u"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+// Uso: player.html?tv=CODIGO_DA_TV (cadastrado no painel)
+const code=new URLSearchParams(location.search).get('tv'),sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const URL_=p=>SUPABASE_URL+'/storage/v1/object/public/midia/'+p,sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const EVERY=3; // a cada quantas imagens/vídeos a tabela de preços volta a passar
+let synced=false,feed=JSON.parse(localStorage.getItem('feed:'+code)||'null');
+
+// ---- Planilha (CSV publicado): lista de preços e ofertas do setor
+let rows=JSON.parse(localStorage.getItem('rows:'+code)||'[]');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>'R$ '+n.toFixed(2).replace('.',',');
+const num=s=>{s=(s||'').replace(/[R$\s]/g,'');if(!s)return null;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?null:n};
+const dt=s=>{s=(s||'').trim();let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''};
+function csv(t){const R=[];let r=[],f='',q=0;for(let i=0;i<t.length;i++){const c=t[i];
+ if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=0}else f+=c}
+ else if(c=='"')q=1;else if(c==','){r.push(f);f=''}else if(c=='\n'||c=='\r'){if(c=='\r'&&t[i+1]=='\n')i++;r.push(f);R.push(r);r=[];f=''}else f+=c}
+ if(f||r.length){r.push(f);R.push(r)}return R}
+function parse(t){const R=csv(t),h=R[0].map(x=>x.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''));
+ return R.slice(1).map(r=>{const o={};h.forEach((k,i)=>o[k]=(r[i]||'').trim());
+  return{desc:o.descricao,grupo:o.grupo||'',un:o.unidade,p:num(o.preco),po:num(o.preco_oferta),di:dt(o.oferta_inicio),df:dt(o.oferta_fim),on:!/^(n|nao|0|false)/i.test((o.ativo||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''))}})
+  .filter(x=>x.desc&&x.p!=null&&x.on)}
+let ss='';
+async function syncSheet(){if(!feed||!feed.sheet){ss='sem planilha cadastrada';return}
+ let why='';
+ for(const u of [feed.sheet+(feed.sheet.includes('?')?'&':'?')+'_='+Date.now(),feed.sheet]){
+  let r;try{r=await fetch(u)}catch(e){why='bloqueado pelo navegador (CORS/rede)';continue}
+  if(!r.ok){why='HTTP '+r.status;continue}
+  try{rows=parse(await r.text())}catch(e){why='formato inesperado';continue}
+  localStorage.setItem('rows:'+code,JSON.stringify(rows));ss='planilha: '+rows.length+' produtos';return}
+ ss='planilha: falha ao ler ('+why+')'+(rows.length?' - usando a última cópia':'')}
+const title=()=>esc((feed&&(feed.sector||feed.tv))||'');
+function pages(){const d=new Date().toLocaleDateString('sv'),off=x=>x.po!=null&&(!x.di||x.di<=d)&&(!x.df||x.df>=d),P=[],all=rows.map(x=>({...x,hot:off(x)})),O=all.filter(x=>x.hot);
+ for(let i=0;i<O.length;i+=4)P.push({kind:'offers',list:O.slice(i,i+4),seconds:12});
+ [...new Set(all.map(x=>x.grupo))].forEach(g=>{const L=all.filter(x=>x.grupo===g);for(let i=0;i<L.length;i+=10)P.push({kind:'prices',g,list:L.slice(i,i+10),seconds:15})});
+ const pr=P.filter(m=>m.kind==='prices');pr.forEach((m,i)=>{m.i=i+1;m.t=pr.length});return P}
+function html(m){if(m.kind==='offers')return`<div class="pg of"><h1><span>Ofertas · ${title()}</span><img src="logo.png" alt=""></h1><ul>${m.list.map(x=>`<li><span class="d">${esc(x.desc)}</span><span class="old">${money(x.p)}</span><span class="new">${money(x.po)}<small>${x.un?' / '+esc(x.un):''}</small></span>${x.df?`<span class="until">até ${x.df.slice(8)}/${x.df.slice(5,7)}</span>`:''}</li>`).join('')}</ul></div>`;
+ const br=n=>n.toFixed(2).replace('.',',');
+ return`<div class="pg lp"><h1><span>${title()}</span><img src="logo.png" alt=""></h1><div class="hd"><span>LISTAGEM ${title()}${m.g?' · '+esc(m.g):''}</span><span>PREÇO (R$)</span></div><ul>${m.list.map(x=>`<li class="${x.hot?'hot':''}"><span class="d">${esc(x.desc)}</span><span class="p">${br(x.hot?x.po:x.p)}</span></li>`).join('')}</ul><div class="ft">Página ${m.i}/${m.t}</div></div>`}
+async function sync(){try{const{data,error}=await sb.rpc('player_feed',{p_code:code});if(error)throw 0;if(!data){feed=null;rows=[];['feed','rows'].forEach(k=>localStorage.removeItem(k+':'+code));synced=true;return}
+ feed=data;localStorage.setItem('feed:'+code,JSON.stringify(data));localStorage.setItem('at:'+code,new Date().toLocaleString('pt-BR'));await cache()}catch(e){}
+ await syncSheet();synced=true;$u()}
+const $u=()=>document.getElementById('u').textContent='Atualizado em '+(localStorage.getItem('at:'+code)||'—')+' · '+ss;
+async function cache(){const c=await caches.open('m:'+code),keep=new Set(feed.items.flatMap(i=>i.media.map(m=>URL_(m.path))));
+ for(const k of await c.keys())if(!keep.has(k.url))await c.delete(k);   // apaga da TV o que venceu
+ for(const u of keep)if(!await c.match(u))try{const r=await fetch(u);if(r.ok)await c.put(u,r)}catch(e){}}
+function playlist(){const n=new Date(),d=n.toLocaleDateString('sv'),h=n.toTimeString().slice(0,5),w=n.getDay();
+ return(feed?feed.items:[]).filter(i=>i.start_date<=d&&i.end_date>=d&&i.weekdays.includes(w)&&i.start_time.slice(0,5)<=h&&h<=i.end_time.slice(0,5))
+  .flatMap(i=>i.media.map(m=>({...m,seconds:i.seconds})))}
+async function src(p){const r=await(await caches.open('m:'+code)).match(URL_(p));return r?URL.createObjectURL(await r.blob()):URL_(p)}
+// Fundo desfocado: quando o formato do arquivo não é o da tela, uma cópia ampliada e borrada preenche as sobras.
+function bg(el,w,h){const sw=innerWidth,sh=innerHeight;if(!w||!h||Math.abs(w/h-sw/sh)<0.02)return null;
+ const k0=Math.min(sw/w,sh/h);el.style.width=w*k0+'px';el.style.height=h*k0+'px';el.classList.add('f');
+ const c=document.createElement('canvas');c.width=64;c.height=Math.round(64*sh/sw);
+ const x=c.getContext('2d'),k=Math.max(c.width/w,c.height/h),dw=w*k,dh=h*k;
+ const draw=()=>{try{x.drawImage(el,(c.width-dw)/2,(c.height-dh)/2,dw,dh)}catch(e){}};draw();return{c,draw}}
+async function show(m){const s=document.getElementById('s');if(m.list){s.innerHTML=html(m);await sleep(m.seconds*1000);return}const u=await src(m.path);
+ if(m.kind==='video'){const v=document.createElement('video');v.muted=true;v.playsInline=true;
+  await new Promise(r=>{v.onloadedmetadata=r;v.onerror=r;v.src=u;setTimeout(r,10000)});
+  const b=bg(v,v.videoWidth,v.videoHeight);s.replaceChildren(...(b?[b.c,v]:[v]));const t=b&&setInterval(b.draw,100);
+  await new Promise(r=>{v.onended=v.onerror=r;v.play().catch(r);setTimeout(r,300000)});clearInterval(t)}
+ else{const i=new Image();i.src=u;await i.decode().catch(()=>{});
+  const b=bg(i,i.naturalWidth,i.naturalHeight);s.replaceChildren(...(b?[b.c,i]:[i]));await sleep(m.seconds*1000)}
+ if(u.startsWith('blob:'))URL.revokeObjectURL(u)}
+async function loop(){for(;;){const P=pages(),M=playlist(),l=[];if(!M.length)l.push(...P);else for(let i=0;i<M.length;i+=EVERY)l.push(...P,...M.slice(i,i+EVERY));
+ if(!l.length){document.getElementById('s').innerHTML=`<div id="i">${feed?'Sem conteúdo programado':synced?'TV não encontrada. Confira o código no painel.':'Carregando…'}</div>`;await sleep(10000);continue}
+ for(const m of l)await show(m)}}
+if(code){sync();setInterval(sync,300000);loop()}else document.getElementById('s').innerHTML='<div id="i">TV sem código.<br>Abra o endereço com ?tv=CODIGO, igual ao cadastrado no painel.</div>';
+</script></body></html>

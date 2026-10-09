@@ -1,0 +1,119 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>TV INDOOR · REDE SERIDÓ</title>
+<script>(function(){var t;try{t=localStorage.getItem("theme")}catch(e){}if(!t)t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";document.documentElement.dataset.theme=t})()</script>
+<style>
+:root{--g1:#007549;--g2:#00A859;--y:#FEC32B;--o:#F58634;--bg:#f2f6f3;--fg:#15301f;--card:#fff;--mut:#5d6f64;--bd:#d3dfd6;--bad:#b4540f;--hd:#fff;--ti:#007549;--btn:#007549;--inp:#fff}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0d1f1a;--fg:#e8f2ec;--card:#14302a;--mut:#9db9ab;--bd:#254a3f;--bad:#ffb070;--hd:#102a23;--ti:#FEC32B;--btn:#00964f;--inp:#0d1f1a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--hd);position:relative;z-index:1;border-bottom:.45rem solid var(--y);display:flex;align-items:center;gap:1rem;padding:.5rem 1.2rem}
+header img{height:70px;width:auto}header h1{margin:0;font-size:1.25rem;color:var(--ti);text-transform:uppercase;letter-spacing:.05em}
+main{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:20px}
+h2{margin:.2em 0 .4em;font-size:1.05rem;color:var(--ti);text-transform:uppercase;letter-spacing:.05em}
+section{background:var(--card);border:1px solid var(--bd);border-top:.3rem solid var(--g2);border-radius:6px;padding:16px;margin:16px 0}
+label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
+input,button{font:15px system-ui,sans-serif;padding:9px;border:1px solid var(--bd);border-radius:5px;background:var(--inp);color:var(--fg)}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=time],input[type=number]{width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}
+.chk label{display:inline-flex;gap:5px;align-items:center;margin:4px 12px 4px 0;font-weight:400}
+button{background:var(--btn);color:#fff;border:0;cursor:pointer;font-weight:600}button:hover{filter:brightness(1.12)}
+button.s{background:transparent;color:var(--bad);border:1px solid var(--o)}button.s:hover{background:rgba(245,134,52,.14)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--g2);outline-offset:2px}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--bd)}
+.m{color:var(--mut);font-size:14px}.err{color:var(--bad);font-size:14px}[hidden]{display:none}
+#login{max-width:380px;margin:40px auto}
+#dvd{position:fixed;top:0;left:0;width:210px;opacity:.13;pointer-events:none;z-index:0;transition:filter .8s}
+:root[data-theme="dark"] #dvd{opacity:.17}
+body{transition:background .3s,color .3s}
+</style></head><body><img id="dvd" src="logo.png" alt="" aria-hidden="true"><header><img src="logo.png" alt="Rede Seridó Supermercados"><h1>TV Indoor · Painel</h1><button class="s" id="th" style="margin-left:auto" type="button"></button></header><main>
+<section id="login"><h2>Entrar</h2>
+<label for="em">E-mail</label><input id="em" type="email" autocomplete="username">
+<label for="pw">Senha</label><input id="pw" type="password" autocomplete="current-password">
+<p><button id="go">Entrar</button></p><p class="err" id="lerr"></p></section>
+
+<div id="app" hidden>
+<p class="m"><button class="s" id="out">Sair</button></p>
+<section><h2>TVs</h2><div id="tvs"></div>
+<div class="row"><input id="tn" type="text" placeholder="Nome (ex.: TV Açougue)"><input id="ts" type="text" placeholder="Setor"><input id="tc" type="text" placeholder="Código (ex.: acougue1)"></div>
+<input id="tu" type="text" placeholder="Link CSV da planilha (opcional)" style="margin-top:10px">
+<p><button id="addtv">Adicionar TV</button></p></section>
+
+<section><h2>Nova programação</h2>
+<label for="cn">Nome</label><input id="cn" type="text" placeholder="Ex.: Ofertas da semana">
+<label for="fl">Imagens e vídeos (pode escolher vários)</label><input id="fl" type="file" accept="image/*,video/*" multiple>
+<p class="m">Tamanho ideal: 1080 x 1920 (formato 9:16, vertical). Arquivos em outro formato ganham um fundo desfocado automaticamente na TV.</p>
+<div class="row"><div><label for="d1">De</label><input id="d1" type="date"></div><div><label for="d2">Até</label><input id="d2" type="date"></div>
+<div><label for="t1">Início do horário</label><input id="t1" type="time" value="00:00"></div><div><label for="t2">Fim do horário</label><input id="t2" type="time" value="23:59"></div>
+<div><label for="sc">Segundos por imagem</label><input id="sc" type="number" value="10" min="3"></div></div>
+<label>Dias da semana</label><div class="chk" id="wd"></div>
+<label>TVs (nenhuma marcada = todas)</label><div class="chk" id="tvc"></div>
+<p><button id="save">Publicar programação</button> <span class="m" id="st"></span></p></section>
+
+<section><h2>Programações em vigor ou agendadas</h2><div id="list"></div>
+<p class="m">Programações vencidas são apagadas por completo (arquivos incluídos) ao abrir o painel.</p></section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=i=>document.getElementById(i);
+const today=()=>new Date().toLocaleDateString('sv');
+const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+$('wd').innerHTML=DIAS.map((d,i)=>`<label><input type="checkbox" value="${i}" checked>${d}</label>`).join('');
+$('go').onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});
+ $('lerr').textContent=error?'E-mail ou senha incorretos.':'';if(!error)start()};
+$('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
+async function start(){const{data}=await sb.auth.getSession();if(!data.session)return;
+ $('login').hidden=true;$('app').hidden=false;await cleanup();await loadTvs();await loadList()}
+async function cleanup(){const{data:old}=await sb.from('campaigns').select('id,media(path)').lt('end_date',today());
+ for(const c of old||[]){const p=c.media.map(m=>m.path);if(p.length)await sb.storage.from('midia').remove(p);
+  await sb.from('campaigns').delete().eq('id',c.id)}}
+let TVS=[];
+async function loadTvs(){const{data}=await sb.from('tvs').select('*').order('name');TVS=data||[];
+ $('tvs').innerHTML=TVS.map(t=>`<div class="item"><span>${t.name} <span class="m">${t.sector||''} · ?tv=${t.code} · planilha: ${t.sheet_url?'ok':'sem link'}</span></span><span><button class="s" onclick="setSheet('${t.id}')">Link da planilha</button> <button class="s" onclick="delTv('${t.id}')">Excluir</button></span></div>`).join('')||'<p class="m">Nenhuma TV cadastrada.</p>';
+ $('tvc').innerHTML=TVS.map(t=>`<label><input type="checkbox" value="${t.id}">${t.name}</label>`).join('')}
+$('addtv').onclick=async()=>{if(!$('tn').value||!$('tc').value){alert('Preencha pelo menos o nome e o código da TV.');return}
+ if(!confirm('Adicionar a TV "'+$('tn').value+'"?'))return;
+ const{error}=await sb.from('tvs').insert({name:$('tn').value,sector:$('ts').value,sheet_url:$('tu').value.trim()||null,code:$('tc').value.trim().toLowerCase()});
+ if(error){alert('Não foi possível adicionar: '+error.message+(/sheet_url/.test(error.message)?'\n\nRode o arquivo migracao-planilha.sql no SQL Editor do Supabase.':''));return}
+ $('tn').value=$('ts').value=$('tc').value=$('tu').value='';loadTvs()};
+async function delTv(id){const t=TVS.find(x=>x.id===id);
+ if(prompt('Para excluir a TV "'+t.name+'", digite o código dela: '+t.code)!==t.code){alert('Código diferente. Nada foi excluído.');return}
+ const{error}=await sb.from('tvs').delete().eq('id',id);if(error)alert('Erro: '+error.message);loadTvs()}
+async function setSheet(id){const u=prompt('Cole o link CSV publicado da planilha (vazio para remover):');if(u===null)return;
+ const{error}=await sb.from('tvs').update({sheet_url:u.trim()||null}).eq('id',id);
+ if(error)alert('Não foi possível salvar: '+error.message+(/sheet_url/.test(error.message)?'\n\nRode o arquivo migracao-planilha.sql no SQL Editor do Supabase.':''));loadTvs()}
+async function loadList(){const{data}=await sb.from('campaigns').select('*,media(id)').order('start_date');
+ $('list').innerHTML=(data||[]).map(c=>{const on=c.start_date<=today();
+  return`<div class="item"><span><b>${c.name}</b><br><span class="m">${c.start_date} a ${c.end_date} · ${c.start_time.slice(0,5)}–${c.end_time.slice(0,5)} · ${c.media.length} arquivo(s) · ${on?'em vigor':'agendada'}</span></span><button class="s" onclick="del('${c.id}')">Excluir</button></div>`}).join('')||'<p class="m">Nada programado. Envie arquivos acima.</p>'}
+async function del(id){if(!confirm('Excluir esta programação e seus arquivos?'))return;
+ const{data}=await sb.from('media').select('path').eq('campaign_id',id);
+ if(data.length)await sb.storage.from('midia').remove(data.map(m=>m.path));
+ await sb.from('campaigns').delete().eq('id',id);loadList()}
+const checked=id=>[...$(id).querySelectorAll('input:checked')].map(i=>i.value);
+$('save').onclick=async()=>{const files=[...$('fl').files];
+ if(!$('cn').value||!files.length||!$('d1').value||!$('d2').value){$('st').textContent='Preencha nome, arquivos e datas.';return}
+ if($('d2').value<$('d1').value){$('st').textContent='A data final vem antes da inicial.';return}
+ $('save').disabled=true;const{data:c,error}=await sb.from('campaigns').insert({name:$('cn').value,start_date:$('d1').value,end_date:$('d2').value,
+  start_time:$('t1').value,end_time:$('t2').value,seconds:+$('sc').value,weekdays:checked('wd').map(Number),tv_ids:checked('tvc')}).select().single();
+ if(error){$('st').textContent='Erro: '+error.message;$('save').disabled=false;return}
+ let n=0;for(const[i,f]of files.entries()){$('st').textContent=`Enviando ${++n} de ${files.length}…`;
+  const path=crypto.randomUUID()+'.'+f.name.split('.').pop().toLowerCase();
+  const up=await sb.storage.from('midia').upload(path,f);if(up.error){$('st').textContent='Falha no envio: '+up.error.message;break}
+  await sb.from('media').insert({campaign_id:c.id,path,kind:f.type.startsWith('video')?'video':'image',position:i})}
+ $('st').textContent='Programação publicada.';$('save').disabled=false;$('fl').value='';loadList()};
+start();
+</script><script>
+// Modo claro/escuro (lembra a escolha neste navegador)
+(function(){const b=document.getElementById('th'),r=document.documentElement,
+ paint=()=>b.textContent=r.dataset.theme==='dark'?'Modo claro':'Modo escuro';paint();
+ b.onclick=()=>{r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';try{localStorage.setItem('theme',r.dataset.theme)}catch(e){}paint()}})();
+// Easter egg: logo quicando pela tela, trocando de cor a cada batida
+(function(){const el=document.getElementById('dvd');if(matchMedia('(prefers-reduced-motion:reduce)').matches){el.remove();return}
+ let x=60,y=80,vx=1.1,vy=.85,hue=0;
+ function step(){const w=el.offsetWidth,h=el.offsetHeight,W=innerWidth,H=innerHeight;x+=vx;y+=vy;let hit=0;
+  if(x<=0){x=0;vx=-vx;hit=1}else if(x+w>=W){x=W-w;vx=-vx;hit=1}
+  if(y<=0){y=0;vy=-vy;hit=1}else if(y+h>=H){y=H-h;vy=-vy;hit=1}
+  if(hit){hue=(hue+70+Math.random()*90)%360;el.style.filter='hue-rotate('+hue+'deg)'}
+  el.style.transform='translate('+x+'px,'+y+'px)';requestAnimationFrame(step)}
+ addEventListener('load',()=>requestAnimationFrame(step))})();
+</script>
+</main></body></html>
